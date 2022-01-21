@@ -165,10 +165,10 @@ suspend fun exhTagListScraper(args: Map<String, String>) {
         append(".")
         append("flatten")
         appendLine("()")
-        appendLine()
 
         // Make each category function
         functions.forEach { (name, items) ->
+            appendLine()
             append("    ")
             append("fun")
             append(" ")
@@ -185,10 +185,9 @@ suspend fun exhTagListScraper(args: Map<String, String>) {
             }
             append("    ")
             appendLine(")")
-            appendLine()
         }
         // End the file
-        append("}")
+        appendLine("}")
     }
 
     file.writeText(text)
