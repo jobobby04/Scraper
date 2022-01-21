@@ -106,9 +106,12 @@ suspend fun exhTagListScraper(args: Map<String, String>) {
 
 
     // The EHTags.kt is in the build folder of the project
-    val file = File("build\\EHTags.kt")
+    val file = File("build/EHTags.kt")
 
-    //Create the file , if its already there delete it and create it again
+    // Create the parent dir if it doesn't exist
+    file.parentFile.mkdirs()
+
+    //Create the file, if it's already there delete it and create it again
     if(file.createNewFile()){
         println("${file.name} is created successfully.")
     } else{
@@ -123,6 +126,7 @@ suspend fun exhTagListScraper(args: Map<String, String>) {
 
         appendLine(
             functions.keys.toList()
+                // Drop namespaces
                 .dropLast(1)
                 .sortedWith(
                     compareBy {
@@ -172,7 +176,7 @@ suspend fun exhTagListScraper(args: Map<String, String>) {
         append("}")
     }
 
-    file.appendText(text)
+    file.writeText(text)
 
     println(file.absolutePath)
 }
