@@ -28,6 +28,6 @@ jobs:
 
       - uses: ncipollo/release-action@v1
         with:
-          artifacts: "build/lib/*.jar"
+          artifacts: "build/libs/*.jar"
           draft: true
           token: ${{ secrets.GITHUB_TOKEN }}
