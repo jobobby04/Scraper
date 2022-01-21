@@ -124,35 +124,50 @@ suspend fun exhTagListScraper(args: Map<String, String>) {
         appendLine("package exh.eh\n\nobject EHTags {")
         appendLine()
 
-        appendLine(
-            functions.keys.toList()
-                // Drop namespaces
-                .dropLast(1)
-                .sortedWith(
-                    compareBy {
-                        when {
-                            it.contains("female", true) -> 0
-                            it.contains("male", true) -> 1
-                            it.contains("language", true) -> 3
-                            it.contains("reclass", true) -> 4
-                            it.contains("mixed", true) -> 5
-                            it.contains("other", true) -> 6
-                            it.contains("cosplayer", true) -> 7
-                            it.contains("parody", true) -> 8
-                            it.contains("character", true) -> 9
-                            it.contains("group", true) -> 10
-                            it.contains("artist", true) -> 11
-                            else -> 99
-                        }
-                    }
-                )
-                .joinToString(separator = " + \n        ", prefix = "    fun getAllTags() = ") {
-                    "$it()"
-                }
-        )
 
+        // Make get all tags function
+        append("    ")
+        append("fun")
+        append(" ")
+        append("getAllTags")
+        append("()")
+        append(" = ")
+        appendLine("listOf(")
+        functions.keys.toList()
+            // Drop namespaces
+            .dropLast(1)
+            .sortedWith(
+                compareBy {
+                    when {
+                        it.contains("female", true) -> 0
+                        it.contains("male", true) -> 1
+                        it.contains("language", true) -> 3
+                        it.contains("reclass", true) -> 4
+                        it.contains("mixed", true) -> 5
+                        it.contains("other", true) -> 6
+                        it.contains("cosplayer", true) -> 7
+                        it.contains("parody", true) -> 8
+                        it.contains("character", true) -> 9
+                        it.contains("group", true) -> 10
+                        it.contains("artist", true) -> 11
+                        else -> 99
+                    }
+                }
+            )
+            .forEach {
+                append("        ")
+                append(it)
+                append("()")
+                appendLine(",")
+            }
+        append("    ")
+        append(")")
+        append(".")
+        append("flatten")
+        appendLine("()")
         appendLine()
 
+        // Make each category function
         functions.forEach { (name, items) ->
             append("    ")
             append("fun")
