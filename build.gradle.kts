@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    kotlin("jvm") version "1.6.21"
+    kotlin("jvm") version "1.7.10"
 }
 
 group = "com.jobobby"
@@ -12,9 +12,10 @@ repositories {
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.1")
-    implementation("com.squareup.okhttp3:okhttp:4.9.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
+    implementation("com.squareup.okhttp3:okhttp:4.10.0")
     implementation("org.jsoup:jsoup:1.14.3")
+    implementation("com.squareup:kotlinpoet:1.12.0")
 }
 
 java {

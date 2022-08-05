@@ -6,4 +6,4 @@ Copy your member id and password hash cookie values
 Run the jar with arguments containing the values like so
 `java -jar Scraper-1.0.jar exhId=####### exhPassHash=222222222222222222222222222`
 
-The EHTags.kt file will be generated into a build folder.
+It will generate multiple classes and files in build/exh.

@@ -1,5 +1,12 @@
 package exh
 
+import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.FileSpec
+import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
+import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.asTypeName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -12,13 +19,6 @@ import okhttp3.Request
 import org.jsoup.Jsoup
 import java.util.Locale
 import kotlin.io.path.Path
-import kotlin.io.path.absolutePathString
-import kotlin.io.path.createDirectories
-import kotlin.io.path.createFile
-import kotlin.io.path.deleteExisting
-import kotlin.io.path.deleteIfExists
-import kotlin.io.path.name
-import kotlin.io.path.writeText
 
 suspend fun exhTagListScraper(args: Map<String, String>) {
     val cookies = object : CookieJar {
@@ -92,105 +92,136 @@ suspend fun exhTagListScraper(args: Map<String, String>) {
         .mapKeys {
             it.key.ifBlank { "misc" }
         }
-        .let {
-            it.plus("namespaces" to it.keys.toList())
-        }
-        .flatMap { (key, values) ->
-            values.chunked(2000)
-                .mapIndexed { index, tags ->
-                    buildString {
-                        append("get")
-                        append(key.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() })
-                        append(index)
-                        append("Tags")
-                    } to tags
-                }
-        }
         .toMap()
 
-
+    val functionCount = 3
 
     // The EHTags.kt is in the build folder of the project
-    val file = Path("build/EHTags.kt")
+    val currentPackage = "exh.eh"
+    val tagsPackage = "$currentPackage.tags"
+    val superInterface = generateTagListInterface(functionCount)
+    val interfaceName = ClassName(tagsPackage, superInterface.name!!)
 
-    // Create the parent dir if it doesn't exist
-    file.parent.createDirectories()
-
-    //Create the file, if it's already there delete it and create it again
-    file.deleteIfExists()
-    file.createFile()
-
-    val text = buildString {
-        appendLine("package exh.eh\n\nobject EHTags {")
-        appendLine()
-
-
-        // Make get all tags function
-        append("    ")
-        append("fun")
-        append(" ")
-        append("getAllTags")
-        append("()")
-        append(" = ")
-        appendLine("listOf(")
-        functions.keys.toList()
-            // Drop namespaces
-            .dropLast(1)
-            .sortedWith(
-                compareBy {
-                    when {
-                        it.contains("female", true) -> 0
-                        it.contains("male", true) -> 1
-                        it.contains("language", true) -> 3
-                        it.contains("reclass", true) -> 4
-                        it.contains("mixed", true) -> 5
-                        it.contains("other", true) -> 6
-                        it.contains("cosplayer", true) -> 7
-                        it.contains("parody", true) -> 8
-                        it.contains("character", true) -> 9
-                        it.contains("group", true) -> 10
-                        it.contains("artist", true) -> 11
-                        else -> 99
-                    }
-                }
-            )
-            .forEach {
-                append("        ")
-                append(it)
-                append("()")
-                appendLine(",")
-            }
-        append("    ")
-        append(")")
-        append(".")
-        append("flatten")
-        appendLine("()")
-
-        // Make each category function
-        functions.forEach { (name, items) ->
-            appendLine()
-            append("    ")
-            append("fun")
-            append(" ")
-            append(name)
-            append("()")
-            append(" = ")
-            appendLine("listOf(")
-            items.forEach {
-                append("        ")
-                append("\"")
-                append(it)
-                append("\"")
-                appendLine(",")
-            }
-            append("    ")
-            appendLine(")")
+    val functionTypeSpecs = functions.flatMap { (namespace, tags) ->
+        tags.chunked(6000).mapIndexed { index, strings ->
+            generateNamespaceObject(if (index > 0) namespace + (index + 1) else namespace, strings, interfaceName)
         }
-        // End the file
-        appendLine("}")
     }
 
-    file.writeText(text)
+    val ehTags = generateEhTagsObject(tagsPackage, functionTypeSpecs, functions.keys)
 
-    println(file.absolutePathString())
+    FileSpec.builder(tagsPackage, "TagList")
+        .addType(superInterface)
+        .build()
+        .writeTo(Path("build"))
+
+    functionTypeSpecs.forEach {
+        FileSpec.builder(tagsPackage, it.name!!)
+            .addType(it)
+            .build()
+            .writeTo(Path("build"))
+    }
+
+    FileSpec.builder(currentPackage, "EHTags")
+        .addType(ehTags)
+        .build()
+        .writeTo(Path("build"))
+}
+
+fun generateTagListInterface(functionCount: Int): TypeSpec {
+    return TypeSpec.interfaceBuilder("TagList")
+        .also {
+            repeat(functionCount) { index ->
+                it.addFunction(
+                    FunSpec.builder("getTags${index + 1}")
+                        .also {
+                            if (index > 0) {
+                                it.addCode("return emptyList()")
+                            } else {
+                                it.addModifiers(KModifier.ABSTRACT)
+                            }
+                        }
+                        .returns(List::class.parameterizedBy(String::class))
+                        .build()
+                )
+            }
+        }
+        .addFunction(
+            FunSpec.builder("getTags")
+                .returns(List::class.asTypeName().parameterizedBy(List::class.parameterizedBy(String::class)))
+                .addCode(
+                    "return listOf(\n${(0 until functionCount).joinToString(separator = ",\n    ", prefix = "    ") { "getTags${it + 1}()" }}\n)"
+                )
+                .build()
+        )
+        .build()
+}
+
+fun generateNamespaceObject(
+    namespace: String,
+    tags: List<String>,
+    superInterface: ClassName
+): TypeSpec {
+    return TypeSpec.objectBuilder(namespace.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() })
+        .addSuperinterface(superInterface)
+        .also { typeSpec ->
+            tags.chunked(2000).forEachIndexed { index, funcTags ->
+                typeSpec.addFunction(
+                    FunSpec.builder("getTags${index + 1}")
+                        .addModifiers(KModifier.OVERRIDE)
+                        .returns(List::class.parameterizedBy(String::class))
+                        .addCode(
+                            "return listOf(\n${funcTags.joinToString(separator = ",\n    ", prefix = "    ") { "\"$it\"" }}\n)"
+                        )
+                        .build()
+                )
+            }
+        }
+        .build()
+}
+
+fun generateEhTagsObject(
+    tagsPackage: String,
+    functions: List<TypeSpec>,
+    namespaces: Set<String>
+): TypeSpec {
+    val sortedFunctions = functions
+        .map {
+            ClassName(tagsPackage, it.name!!)
+        }
+        .sortedBy {
+            when {
+                it.simpleName.contains("female", true) -> 0
+                it.simpleName.contains("male", true) -> 1
+                it.simpleName.contains("language", true) -> 3
+                it.simpleName.contains("reclass", true) -> 4
+                it.simpleName.contains("mixed", true) -> 5
+                it.simpleName.contains("other", true) -> 6
+                it.simpleName.contains("cosplayer", true) -> 7
+                it.simpleName.contains("parody", true) -> 8
+                it.simpleName.contains("character", true) -> 9
+                it.simpleName.contains("group", true) -> 10
+                it.simpleName.contains("artist", true) -> 11
+                else -> 99
+            }
+        }
+    return TypeSpec.objectBuilder("EHTags")
+        .addFunction(
+            FunSpec.builder("getAllTags")
+                .returns(List::class.parameterizedBy(String::class))
+                .addCode(
+                    "return listOf(\n${(sortedFunctions.indices).joinToString(separator = ",\n    ", prefix = "    ") { "%T.getTags()" }}\n).flatten().flatten()",
+                    *sortedFunctions.toTypedArray()
+                )
+                .build()
+        )
+        .addFunction(
+            FunSpec.builder("getNamespaces")
+                .returns(List::class.parameterizedBy(String::class))
+                .addCode(
+                    "return listOf(\n${namespaces.joinToString(separator = ",\n    ", prefix = "    ") { "\"$it\"" }}\n)"
+                )
+                .build()
+        )
+        .build()
 }
