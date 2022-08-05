@@ -10,10 +10,15 @@ import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.jsoup.Jsoup
-import java.io.File
-import java.time.Instant
-import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.io.path.Path
+import kotlin.io.path.absolutePathString
+import kotlin.io.path.createDirectories
+import kotlin.io.path.createFile
+import kotlin.io.path.deleteExisting
+import kotlin.io.path.deleteIfExists
+import kotlin.io.path.name
+import kotlin.io.path.writeText
 
 suspend fun exhTagListScraper(args: Map<String, String>) {
     val cookies = object : CookieJar {
@@ -106,19 +111,14 @@ suspend fun exhTagListScraper(args: Map<String, String>) {
 
 
     // The EHTags.kt is in the build folder of the project
-    val file = File("build/EHTags.kt")
+    val file = Path("build/EHTags.kt")
 
     // Create the parent dir if it doesn't exist
-    file.parentFile.mkdirs()
+    file.parent.createDirectories()
 
     //Create the file, if it's already there delete it and create it again
-    if(file.createNewFile()){
-        println("${file.name} is created successfully.")
-    } else{
-        println("${file.name} already exists.")
-        file.delete()
-        file.createNewFile()
-    }
+    file.deleteIfExists()
+    file.createFile()
 
     val text = buildString {
         appendLine("package exh.eh\n\nobject EHTags {")
@@ -192,5 +192,5 @@ suspend fun exhTagListScraper(args: Map<String, String>) {
 
     file.writeText(text)
 
-    println(file.absolutePath)
+    println(file.absolutePathString())
 }
