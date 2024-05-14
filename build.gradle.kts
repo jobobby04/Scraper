@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    kotlin("jvm") version "1.9.21"
+    kotlin("jvm") version "1.9.24"
 }
 
 group = "com.jobobby"
@@ -12,10 +12,10 @@ repositories {
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
-    implementation("com.squareup.okhttp3:okhttp:4.11.0")
-    implementation("org.jsoup:jsoup:1.17.1")
-    implementation("com.squareup:kotlinpoet:1.15.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
+    implementation("com.squareup.okhttp3:okhttp:5.0.0-alpha.14")
+    implementation("org.jsoup:jsoup:1.17.2")
+    implementation("com.squareup:kotlinpoet:1.16.0")
 }
 
 java {
@@ -28,14 +28,15 @@ tasks {
         kotlinOptions.jvmTarget = "1.8"
     }
 
-    jar {
+    register<Jar>("fatJar") {
+        group = "build"
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
         manifest {
             attributes["Main-Class"] = "main.MainKt"
         }
 
         from(sourceSets.main.get().output)
-
-        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
         dependsOn(configurations.runtimeClasspath)
         from({
