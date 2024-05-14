@@ -55,8 +55,12 @@ suspend fun exhTagListScraper(args: Map<String, String>) {
             .build()
     ).execute()
 
+    if (!response.isSuccessful) {
+        throw IllegalStateException("${response.code}: ${response.message}")
+    }
+
     val functions = withContext(Dispatchers.IO) {
-        Jsoup.parse(response.body!!.string())
+        Jsoup.parse(response.body.string())
             .select("body p a")
             .toList()
             .map { it.attr("href") }
@@ -75,7 +79,12 @@ suspend fun exhTagListScraper(args: Map<String, String>) {
             .awaitAll()
 
     }
-        .map { Jsoup.parse(it.body!!.string()) }
+        .onEach {
+            if (!it.isSuccessful) {
+                throw IllegalStateException("${it.code}: ${it.message}")
+            }
+        }
+        .map { Jsoup.parse(it.body.string()) }
         .map {
             it.select("tr > td > a")
                 .toList()
