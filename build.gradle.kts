@@ -15,7 +15,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
     implementation("com.squareup.okhttp3:okhttp:5.0.0-alpha.14")
     implementation("org.jsoup:jsoup:1.17.2")
-    implementation("com.squareup:kotlinpoet:1.16.0")
+    implementation("com.squareup:kotlinpoet:1.17.0")
 }
 
 java {
