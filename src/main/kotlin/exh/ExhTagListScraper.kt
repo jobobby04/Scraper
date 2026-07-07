@@ -65,7 +65,7 @@ suspend fun exhTagListScraper(args: Map<String, String>) {
             .toList()
             .map { it.attr("href") }
             // Drop temp
-            .drop(1)
+            .dropLast(1)
             .map {
                 async {
                     client.newCall(
